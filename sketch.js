@@ -13,13 +13,18 @@ let poseNet;
 let poses = [];
 let goodpoints = [];
 
+let danceMoves = ['Y-pose.json', 'T-pose.json', 'rightArmUp.json']
+
 let targetPose = null;
 
-function loadTarget() {
+//This is our score, always starts at 0
+var score = 0;
 
+function loadTarget() {
+    let randomlyPickDanceMove = danceMoves[Math.floor(Math.random() * danceMoves.length)];
     var xobj = new XMLHttpRequest();
     xobj.overrideMimeType("application/json");
-    xobj.open('GET', 'target.json', true); // Replace 'appDataServices' with the path to your file
+    xobj.open('GET', randomlyPickDanceMove, true); // Replace 'appDataServices' with the path to your file
     xobj.onreadystatechange = function () {
         if (xobj.readyState == 4 && xobj.status == "200") {
             // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
@@ -53,6 +58,7 @@ function setup() {
 
 function modelReady() {
     select("#status").html("Model Loaded");
+    select("#score").html("Score: " + score);
 }
 
 function draw() {
@@ -80,7 +86,7 @@ function pointMatches(part) {
     let target = new Point(targetPose.pose.keypoints[part].position.x, targetPose.pose.keypoints[part].position.y);
 
     let distance = actual.distanceTo(target);
-    if (distance < 40) {
+    if (distance < 100) {
         return true;
     } else {
         return false;
@@ -111,7 +117,7 @@ function drawKeypoints() {
                     goodpoints[j] = keypoint;
                 }
                 noStroke();
-                ellipse(keypoint.position.x, keypoint.position.y, 10, 10);
+                ellipse(keypoint.position.x, keypoint.position.y, 15, 15);
             }
         }
 
@@ -124,7 +130,10 @@ function drawKeypoints() {
         }
 
         if (matches == 7) {
-            document.querySelector("body").style.background = "green";
+            //Adds 10 to the score
+            score++;
+            select("#score").html("Score: " + score);
+            loadTarget();
         }
     }
 }

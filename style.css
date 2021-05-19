@@ -1,0 +1,17 @@
+.PlayButton {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 100px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 24px;
+}
+
+.Title{
+    color: black;
+    margin-left: 30px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 50px;
+}
