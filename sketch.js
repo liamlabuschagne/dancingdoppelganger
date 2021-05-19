@@ -13,7 +13,7 @@ let poseNet;
 let poses = [];
 let goodpoints = [];
 
-let danceMoves = ['Y-pose.json', 'T-pose.json', 'rightArmUp.json']
+let danceMoves = ['Y-Pose.json', 'T-Pose.json', 'rightArmUp.json']
 
 let targetPose = null;
 
