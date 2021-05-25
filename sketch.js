@@ -13,14 +13,39 @@ let poseNet;
 let poses = [];
 let goodpoints = [];
 
-let danceMoves = ['Y-Pose.json', 'T-Pose.json', 'rightArmUp.json']
+let danceMoves = ['Y-pose.json', 'T-pose.json', 'rightArmUp.json']
 
 let targetPose = null;
 
 //This is our score, always starts at 0
 var score = 0;
 
+//Timer for adding poses randomly throughout the song.
+const startingMinutes = 0;
+let time = startingMinutes * 60;
+
+//Stops our score flying up
+//hasDonePose = new boolean(false);
+
+const countdownEl = document.getElementById('countdown');
+
+setInterval(updateCountdown, 1000);
+
+function updateCountdown(){
+    const minutes = Math.floor(time / 60);
+    let seconds = time % 60;
+
+    countdownEl.innerHTML = `${minutes}: ${seconds}`;
+    time++;
+
+    if(time == 10){
+        loadTarget();
+        time = 0;
+    }
+}
+
 function loadTarget() {
+    hasDonePose = false;
     let randomlyPickDanceMove = danceMoves[Math.floor(Math.random() * danceMoves.length)];
     var xobj = new XMLHttpRequest();
     xobj.overrideMimeType("application/json");
@@ -131,10 +156,17 @@ function drawKeypoints() {
 
         if (matches == 7) {
             //Adds 10 to the score
-            score++;
-            select("#score").html("Score: " + score);
-            loadTarget();
+            if(!hasDonePose){
+                hasDonePose = true;
+                score++;
+                select("#score").html("Score: " + score);
+            }
+            else{
+                //Sing and wait for next pose!
+            }
         }
+
+        
     }
 }
 
