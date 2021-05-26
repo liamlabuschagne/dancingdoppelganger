@@ -15,6 +15,10 @@ let goodpoints = [];
 
 let danceMoves = ['Y-pose.json', 'T-pose.json', 'rightArmUp.json']
 
+var testMove = 'Y-pose.json';
+
+let testPose = null;
+
 let targetPose = null;
 
 //This is our score, always starts at 0
@@ -38,7 +42,7 @@ function updateCountdown(){
     countdownEl.innerHTML = `${minutes}: ${seconds}`;
     time++;
 
-    if(time == 10){
+    if(time == 2){
         loadTarget();
         time = 0;
     }
@@ -56,11 +60,108 @@ function loadTarget() {
             //callback();
             // Add target to drawing
             targetPose = JSON.parse(xobj.responseText);
-            targetPose.target = true;
+            targetPose.target = 1;
+            console.log(targetPose);
         }
     };
     xobj.send(null);
+
+    console.log(targetPose);
 }
+
+function loadScaledTarget() {
+    //I is Learnding: Anything outside a block/function is run first, then the block/function
+    // i.e. even if something is written AFTER the function, it is still run before what's inside the function.
+
+    var xobj = new XMLHttpRequest();
+    xobj.overrideMimeType("application/json");
+    xobj.open('GET', testMove, true); // Replace 'appDataServices' with the path to your file
+    xobj.onreadystatechange = function () {
+        if (xobj.readyState == 4 && xobj.status == "200") {
+            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+            //callback();
+
+            console.log(testPose);
+
+            // Add target to drawing
+            testPose = JSON.parse(xobj.responseText);
+            testPose.info = 2;
+            console.log(testPose);
+
+            var ppose = testPose.pose;
+            var skeleton = testPose.skeleton;
+            score += 2;
+            //Bgoodpoints = [];
+            //score += 1;
+            for (let j = 5; j < 13; j++) {
+                // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+                let keypoint = ppose.keypoints[j];
+
+                keypoint.position.x *= 0.5;
+                keypoint.position.y *= 0.5;
+
+                //if (keypoint.score > 0.2) {
+                //    if (poses[i].pose.target == 1) {
+                //        fill(0, 255, 0);
+                //    }else if (poses[i].pose.target == 2){
+                //        fill(0, 0, 255);
+                //    } else {
+                //        fill(0, 0, 0);
+                //        goodpoints[j] = keypoint;
+                //    }
+                //    noStroke();
+                //    ellipse(keypoint.position.x, keypoint.position.y, 15, 15);
+                //}
+            }
+            for (let i = 0; i < skeleton.length; i++) {
+                let boneStart = skeleton[i][0];
+                let boneEnd = skeleton[i][1];
+
+                boneStart.position.x *= 0.5;
+                boneStart.position.y *= 0.5;
+
+                boneEnd.position.x *= 0.5;
+                boneEnd.position.y *= 0.5;
+            }
+        }
+    };
+    xobj.send(null);
+    
+    console.log(testPose);
+
+    //score += 1;
+
+    // For test pose, loop through all the keypoints
+    console.log(testPose);
+    //For some testPose is null in this level - why??
+    //I think the WHOLE of function should be run before I try to access testPose
+    //const ppose = testPose.pose;
+    //score += 2;
+    //Bgoodpoints = [];
+    //score += 1;
+    //for (let j = 5; j < 13; j++) {
+        // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+    //    let keypoint = ppose.keypoints[j];
+
+    //    keypoint.position.x = 100;
+    //    keypoint.position.y = 100;
+
+        // Only draw an ellipse is the pose probability is bigger than 0.2
+        //if (keypoint.score > 0.2) {
+        //    if (targetPose.pose.target) {
+        //        fill(0, 255, 0);
+        //    } else {
+        //        fill(255, 0, 0);
+        //        Bgoodpoints[j] = keypoint;
+        //    }
+        //    noStroke();
+        //    ellipse(keypoint.position.x, keypoint.position.y, 15, 15);
+        //}
+    //}
+
+    //score += 1;
+}
+
 
 function setup() {
     let scale = 1.5
@@ -79,6 +180,7 @@ function setup() {
     video.hide();
 
     loadTarget();
+    loadScaledTarget();
 }
 
 function modelReady() {
@@ -90,8 +192,19 @@ function draw() {
     image(video, 0, 0, width, height);
 
     // We can call both functions to draw all keypoints and the skeletons
+
+    //Scale testPose maybe please maybe I hope
+    //scaleTest(targetPose);
+
+    //Add the targetPose
+    if (!targetPose) return;
+    poses.push(targetPose);
+    poses.push(testPose);
     drawKeypoints();
     drawSkeleton();
+    //Remove the targetPose
+    poses.pop();
+    poses.pop();
 }
 
 function Point(x, y) {
@@ -118,12 +231,31 @@ function pointMatches(part) {
     }
 }
 
+function scaleTest(poseArray){
+    var ppose = poseArray.pose;
+    score += 2;
+    Bgoodpoints = [];
+    //score += 1;
+    for (let j = 5; j < 13; j++) {
+        // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+        let keypoint = ppose.keypoints[j];
+
+        keypoint.position.x = 100;
+        keypoint.position.y = 100;
+    }
+}
+
 let maxMatches = 0;
 
 // A function to draw ellipses over the detected keypoints
 function drawKeypoints() {
-    if (!targetPose) return;
-    poses.push(targetPose);
+    //console.log(poses);
+
+    //scaleTest(targetPose);
+
+    //if (!targetPose) return;
+    //poses.push(targetPose);//, testPose);
+    //poses.push(testPose);
 
     // Loop through all the poses detected
     for (let i = 0; i < poses.length; i += 1) {
@@ -135,7 +267,9 @@ function drawKeypoints() {
             const keypoint = pose.keypoints[j];
             // Only draw an ellipse is the pose probability is bigger than 0.2
             if (keypoint.score > 0.2) {
-                if (poses[i].pose.target) {
+                if (typeof poses[i].pose.info == undefined) { //Yeah this is trying to distinguish from the actual target but...
+                    fill(0, 255, 255);
+                }else if (poses[i].pose.target){
                     fill(0, 255, 0);
                 } else {
                     fill(255, 0, 0);
@@ -168,6 +302,8 @@ function drawKeypoints() {
 
         
     }
+
+    //poses.pop();
 }
 
 // A function to draw the skeletons
