@@ -8,6 +8,12 @@ ml5 Example
 PoseNet example using p5.js
 === */
 
+/* General Notes about how things work
+    - "console.log"ing the poses doesn't show their keypoints in the correct order - check a json file for the right order
+
+*/
+
+
 let video;
 let poseNet;
 let poses = [];
@@ -72,6 +78,7 @@ function loadTarget() {
 function loadScaledTarget() {
     //I is Learnding: Anything outside a block/function is run first, then the block/function
     // i.e. even if something is written AFTER the function, it is still run before what's inside the function.
+    //MAYBE. On reflection I think the errors might've been that if (xobj.readyState...) was evaluating to false and causing errors?
 
     var xobj = new XMLHttpRequest();
     xobj.overrideMimeType("application/json");
@@ -90,10 +97,10 @@ function loadScaledTarget() {
 
             var ppose = testPose.pose;
             var skeleton = testPose.skeleton;
-            score += 2;
-            //Bgoodpoints = [];
-            //score += 1;
-            for (let j = 5; j < 13; j++) {
+            //score += 2;
+            
+            //Edit pose values here
+            for (let j = 5; j < ppose.keypoints.length - 4; j++) {
                 // A keypoint is an object describing a body part (like rightArm or leftShoulder)
                 let keypoint = ppose.keypoints[j];
 
@@ -122,7 +129,22 @@ function loadScaledTarget() {
 
                 boneEnd.position.x *= 0.5;
                 boneEnd.position.y *= 0.5;
+
+                //let distance = getDistance(boneStart.position.x, boneStart.position.y, boneEnd.position.x, boneEnd.position.y);
+                //console.log("Length of testPose skeleton line " + i + ": " + distance);
             }
+
+            testPose = scaleToShoulders(testPose, 30);
+
+            //if (poses[0] != undefined){
+                //Just some stuff to get the right-left shoulder distance
+                //let rShoulderPoint = new Point(poses[2].skeleton[6][1].position.x, poses[2].skeleton[6][1].position.y);
+                //let lShoulderPoint = new Point(poses[2].skeleton[6][0].position.x, poses[2].skeleton[6][0].position.y);
+                //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
+                //let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+
+                //testPose = scaleToShoulders(testPose, shDistance);
+            //}
         }
     };
     xobj.send(null);
@@ -180,12 +202,33 @@ function setup() {
     video.hide();
 
     loadTarget();
+
+    console.log("This is poses after target is loaded: ");
+    console.log(poses);
+
+    //Just some stuff to get the right-left shoulder distance
+    //let rShoulderPoint = new Point(poses[0].pose.skeleton[6][1].position.x, poses[0].pose.skeleton[6][1].position.y);
+    //let lShoulderPoint = new Point(poses[0].pose.skeleton[6][0].position.x, poses[0].pose.skeleton[6][0].position.y);
+    //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
+    //let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+
     loadScaledTarget();
 }
 
 function modelReady() {
     select("#status").html("Model Loaded");
     select("#score").html("Score: " + score);
+
+    //console.log("This is poses after model is loaded: ");
+    //console.log(poses);
+
+    //Just some stuff to get the right-left shoulder distance
+    //let rShoulderPoint = new Point(poses[0].pose.skeleton[6][1].position.x, poses[0].pose.skeleton[6][1].position.y);
+    //let lShoulderPoint = new Point(poses[0].pose.skeleton[6][0].position.x, poses[0].pose.skeleton[6][0].position.y);
+    //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
+    //let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+
+    //testPose = scaleToShoulders(testPose, shDistance);
 }
 
 function draw() {
@@ -231,25 +274,263 @@ function pointMatches(part) {
     }
 }
 
-function scaleTest(poseArray){
-    var ppose = poseArray.pose;
-    score += 2;
-    Bgoodpoints = [];
+//function scaleTest(poseArray){
+//    var ppose = poseArray.pose;
+//    score += 2;
+//    Bgoodpoints = [];
     //score += 1;
-    for (let j = 5; j < 13; j++) {
+//    for (let j = 5; j < 13; j++) {
         // A keypoint is an object describing a body part (like rightArm or leftShoulder)
-        let keypoint = ppose.keypoints[j];
+//        let keypoint = ppose.keypoints[j];
 
-        keypoint.position.x = 100;
-        keypoint.position.y = 100;
+//        keypoint.position.x = 100;
+//        keypoint.position.y = 100;
+//    }
+//}
+
+/**
+ * Creates an enumerator for an array of variables - their numerical values match their index
+ * @param {array} values 
+ * @returns An enumerator
+ */
+function Enum(values){
+    for (let i = 0; i< values.length; ++i){
+        this[values[i]] = i;
     }
+    return this;
+}
+
+/**
+ * Gets the direct distance between two 2D points (just pythagoras').
+ * The result is always positive. Also looks like we already have one of these...
+ * @param {*} x1 x coord of first point (assumed smaller than x2 but works anyway)
+ * @param {*} y1 y coord of first point (ditto for y2)
+ * @returns {number} Positive distance between points
+ */
+function getDistance(x1, y1, x2, y2) {
+    //sqrt((x2-x1)^2 + (y2-y1)^2)
+    let answer = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+    return answer;
+}
+
+/**
+ * Is an array with just one copy of every point on a pose.
+ * Could just use an array but then how would we do cool function 
+ * shenanigans?
+ * @param {object} pose 
+ */
+function minimalKeypoints(pose){
+    //Loop through keypoints
+    let i = 0;
+    for (i = 0; i < pose.pose.keypoints.length; ++i){
+        let keypoint = pose.pose.keypoints[i];
+        this[i] = {position : new Point(keypoint.position.x, keypoint.position.y), part : keypoint.part};
+    }
+
+    this.length = i;
+
+    /**
+     * Checks if a part is in the minimalKeypoints array, if so, returns its index
+     * @param {*} lookingFor the name of the part to look for
+     * @returns -1 if not found, its index in the array if found
+     */
+    function findElement(lookingFor){
+        for (i = 0; i < this.length; ++i){
+            let keypoint = this[i];
+            if (this[i].part == lookingFor){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    console.log("Made a minimal keypoints array:");
+    console.log(this);
+}
+
+/**
+     * Checks if a part is in the minimalKeypoints array, if so, returns its index
+     * @param {*} lookingFor the name of the part to look for
+     * @returns -1 if not found, its index in the array if found
+     */
+ function findElement(lookingFor, minKeyPoints){
+    for (i = 0; i < minKeyPoints.length; ++i){
+        if (minKeyPoints[i].part == lookingFor){
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Scales a pose relative to a given shoulder-to-shoulder distance (just overall size, not body shape)
+ * @param {object} pose A pose object to be scaled
+ * @param {number} scaleToDistance The right-left shoulder distance we want to scale the pose to
+ * @returns {object} The altered pose object (hopefully it doesn't just alter the original...?)
+ */
+function scaleToShoulders(pose, scaleToDistance) {
+    //skeleton[6] is the line from left to right shoulder
+    //focusShoulder = pose.skeleton[6][0]
+    let rShoulderPoint = new Point(pose.skeleton[6][1].position.x, pose.skeleton[6][1].position.y);
+    let lShoulderPoint = new Point(pose.skeleton[6][0].position.x, pose.skeleton[6][0].position.y);
+    //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
+    let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+    
+    console.log("The shoulder distance to scale to: " + scaleToDistance);
+    console.log("The shoulder distance of the actual pose, unchanged: " + shDistance);
+
+    let multiplier = scaleToDistance/shDistance;
+
+    console.log("The multiplier: " + multiplier);
+
+    //for (let j = 0; j < pose.pose.length; j++) {
+    //    // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+    //    //I really need a better name for pose
+    //    let keypoint = pose.pose.keypoints[j];
+    //
+    //    keypoint.position.x *= multiplier;
+    //    keypoint.position.y *= multiplier;
+    //}
+
+    //Option 3
+    let pointsArray = new minimalKeypoints(pose);
+    //let pointsArray = [];
+
+    //for (let i = 0; i < pose.pose.keypoints.length; ++i){
+        //let keypoint = pose.pose.keypoints[i];
+        //pointsArray[i] = new Point(keypoint.position.x, keypoint.position.y);
+    //}
+
+    //for (let i = 0; i < pose.pose.keypoints.length; ++i){
+        //let keypoint = pose.pose.keypoints[i];
+        //let newXDistance = (keypoint.position.x - rShoulderPoint.x) * multiplier;
+        //let newYDistance = (keypoint.position.y - rShoulderPoint.y) * multiplier;
+        //keypoint.position.x = rShoulderPoint.x + newXDistance;
+        //keypoint.position.y = rShoulderPoint.y + newYDistance;
+    //}
+
+    console.log("This is the minimal keypoints array again: ");
+    console.log(pointsArray);
+
+    console.log(pointsArray.length);
+
+    for (let i = 0; i < pointsArray.length; ++i){
+        //let keypoint = pointsArray[i];
+        let newXDistance = (pointsArray[i].position.x - rShoulderPoint.x) * multiplier;
+        let newYDistance = (pointsArray[i].position.y - rShoulderPoint.y) * multiplier;
+        pointsArray[i].position.x = rShoulderPoint.x + newXDistance;
+        pointsArray[i].position.y = rShoulderPoint.y + newYDistance;
+        console.log(pointsArray[i].x);
+    }
+
+    console.log("And now, after it has been changed: ");
+    console.log(pointsArray);
+
+    //For the keypoints
+    for (let i = 0; i < pose.pose.keypoints.length; ++i){
+        let keypoint = pose.pose.keypoints[i];
+        console.log("The current keypoint: ");
+        console.log(keypoint);
+        keypoint.position.x = pointsArray[i].position.x;
+        keypoint.position.y = pointsArray[i].position.y;
+    }
+
+    //For the skeleton
+    for (let i = 0; i < pose.skeleton.length; i++) {
+        for (let j = 0; j < 2; ++j){
+            let partFoundAt = findElement(pose.skeleton[i][j].part, pointsArray);
+            if (partFoundAt > -1){
+                pose.skeleton[i][j].position.x = pointsArray[partFoundAt].position.x;
+                pose.skeleton[i][j].position.y = pointsArray[partFoundAt].position.y;
+            }
+        }
+    }
+
+    //Create an enum for iterating in the correct order - maybe not? Maybe just an array of references.
+    //After skeleton[1], could input skeleton[7] (right-left hips), or could not. 
+    // The points of that line need to be changed, but they have already been changed in other skeleton lines. 
+    // Depends how we change all the other points.
+    //let skeletonOrder = Enum(new [skeleton[6], , skeleton[5], skeleton[2], skeleton[0], skeleton[1], skeleton[7], skeleton[4], skeleton[3]])
+    //I am assuming these are references, so the og's are getting edited
+    //let skeletonInOrder = [pose.skeleton[6], pose.skeleton[5], pose.skeleton[2], pose.skeleton[0], pose.skeleton[1], pose.skeleton[7], pose.skeleton[4], pose.skeleton[3]];
+
+    //console.log("The original skeleton info, reordered: " + skeletonInOrder);
+    //Maybe will need 2D array with all the places where every point can be found and must be edited
+
+    //for (let i = 0; i < skeletonInOrder.length; i++) {
+        //Need to:
+        //  Start by editing right-left shoulder first (if right shoulder is the absolute point)
+        //      Calculate slope of the line
+        //      Calculate distance of the line
+        //      Use multiplier to get the distance we want
+        //      Use this and slope to work out the x and y points that need to replace the second point (furthest point from absolute point)
+        //      Save those points
+        //  Rinse repeat, but in order like a graph
+        
+        //console.log("Current skeleton line: ");
+        //console.log(skeletonInOrder[i]);
+
+        //Hopefully the points just happen to always be in the order of:
+        //      1 = predetermined point, 2 = point to change
+        //      They are! except for 4 and 3 (right and left elbow-wrist)
+        //let pointinit = new Point(skeletonInOrder[i][1].position.x, skeletonInOrder[i][1].position.y);
+        //let pointfin = new Point(skeletonInOrder[i][0].position.x, skeletonInOrder[i][0].position.y);
+
+        //A value from 0 to 1 for slope (1 = 90deg, 0 = 0deg). If one value is negative, answer is negative and if both are, positive
+        //let slope = Math.atan((pointfin.y - pointinit.y) / (pointfin.x - pointinit.x));
+
+        //Fancy slope calculation
+        //let Dy = pointfin.y - pointinit.y;
+        //let Dx = pointfin.x - pointinit.x;
+        //let slope = Math.atan(Math.abs(Dy)**(Dy/Dy) / Math.abs(Dx)**(Dx/Dx));
+
+        //console.log("Slope of this line: " + slope);
+
+        //let slength = pointinit.distanceTo(pointfin);
+
+        //console.log("The original length of " + skeletonInOrder[i][1].part + " to " + skeletonInOrder[i][0].part + ": " + slength);
+
+        //let newlength = slength * multiplier;
+
+        //console.log("The new length of " + skeletonInOrder[i][1].part + " to " + skeletonInOrder[i][0].part + ": " + newlength);
+
+        //I wonder if changing point1.x will change pose.skeleton[i][1].position.x? - Doesn't seem to
+        //skeletonInOrder[i][0].position.x = pointinit.x + newlength * Math.acos(slope) * (Dx/Dx);//slope);
+        //skeletonInOrder[i][0].position.y = pointinit.y + newlength * Math.asin(slope) * (Dy/Dy);//slope);
+
+        //console.log("Changed skeleton line: ");
+        //console.log(skeletonInOrder[i]);
+
+        //Now the problem is - we can't just use point1 to calculate. Here are the fixes (I can think of)
+        //      1.  Have an array newpoints[] to store the future value of every point (no duplicates if poss - map all the other 
+        //          points to refer to the one indexed/key-accessed value), and leave point1 (and all the points) as they are. 
+        //          That way slength and slope will be the right value, but the new point for point2 can be calculated based on 
+        //          the new point1.
+        //      2.  Get all the slengths and slopes in an array before we start editing values, then edit them all and update the 
+        //          minimalist array of all points as we go, then finally update all points.
+        //      3.  Just multiply every value by the multiplier (except rightShoulder). Use the simple array trick if poss.
+
+        //let distance = getDistance(boneStart.position.x, boneStart.position.y, boneEnd.position.x, boneEnd.position.y);
+        //console.log("Length of testPose skeleton line " + i + ": " + distance);
+    //}
+
+    return pose;
 }
 
 let maxMatches = 0;
 
 // A function to draw ellipses over the detected keypoints
 function drawKeypoints() {
-    //console.log(poses);
+    console.log("poses at the start of every drawKeyPoints()");
+    console.log(poses);
+
+    //Just some stuff to get the right-left shoulder distance
+    //let rShoulderPoint = new Point(poses[0].skeleton[6][1].position.x, poses[0].skeleton[6][1].position.y);
+    //let lShoulderPoint = new Point(poses[0].skeleton[6][0].position.x, poses[0].skeleton[6][0].position.y);
+    //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
+    //let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+
+    //testPose = scaleToShoulders(testPose, shDistance);
 
     //scaleTest(targetPose);
 
@@ -276,7 +557,7 @@ function drawKeypoints() {
                     goodpoints[j] = keypoint;
                 }
                 noStroke();
-                ellipse(keypoint.position.x, keypoint.position.y, 15, 15);
+                ellipse(keypoint.position.x, keypoint.position.y, 10, 10);
             }
         }
 
