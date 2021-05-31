@@ -27,6 +27,22 @@ let testPose = null;
 
 let targetPose = null;
 
+document.getElementById("calibrateButton").addEventListener("click", function scaleTestA() {
+    console.log("Hey we had a click event! This is the poses array: ");
+    console.log(poses);
+
+    let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", poses[0].skeleton);
+    //Just some stuff to get the right-left shoulder distance
+    //THIS ASSUMES THE RIGHT SHOULDER IS THE SECOND IN THE ARRAY (pretty sure ml5 always does it that way)
+    let rShoulderPoint = new Point(poses[0].skeleton[shouldersIndex][1].position.x, poses[0].skeleton[shouldersIndex][1].position.y);
+    let lShoulderPoint = new Point(poses[0].skeleton[shouldersIndex][0].position.x, poses[0].skeleton[shouldersIndex][0].position.y);
+    //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
+    let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+
+    testPose = scaleToShoulders(testPose, shDistance);
+}
+);
+
 //This is our score, always starts at 0
 var score = 0;
 
@@ -363,6 +379,29 @@ function minimalKeypoints(pose){
 }
 
 /**
+     * Checks if a part is in the skeleton array, if so, returns its index
+     * @param {*} lookingFor1 the name of one of the parts to look for
+     * @param {*} lookingFor2 the name of the other part to look for
+     * @param {*} skeleton a skeleton array (from in a pose) to search through
+     * @returns -1 if not found, the index of the pair in the array if found
+     */
+ function findSkeletonElement(lookingFor1, lookingFor2, skeleton){
+    let foundCount = 0;
+    for (i = 0; i < skeleton.length; ++i){
+        for (j = 0; j < 2; ++j){
+            if (skeleton[i][j].part == lookingFor1 || skeleton[i][j].part == lookingFor2){
+                foundCount++;
+            }
+        }
+        if (foundCount == 2){
+            return i;
+        }
+        foundCount = 0;
+    }
+    return -1;
+}
+
+/**
  * Scales a pose relative to a given shoulder-to-shoulder distance (just overall size, not body shape)
  * @param {object} pose A pose object to be scaled
  * @param {number} scaleToDistance The right-left shoulder distance we want to scale the pose to
@@ -521,8 +560,8 @@ let maxMatches = 0;
 
 // A function to draw ellipses over the detected keypoints
 function drawKeypoints() {
-    console.log("poses at the start of every drawKeyPoints()");
-    console.log(poses);
+    //console.log("poses at the start of every drawKeyPoints()");
+    //console.log(poses);
 
     //Just some stuff to get the right-left shoulder distance
     //let rShoulderPoint = new Point(poses[0].skeleton[6][1].position.x, poses[0].skeleton[6][1].position.y);
