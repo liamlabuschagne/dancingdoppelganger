@@ -10,7 +10,7 @@ PoseNet example using p5.js
 
 /* General Notes about how things work
     - "console.log"ing the poses doesn't show their keypoints in the correct order - check a json file for the right order
-
+    - skeleton is not always full - only as many lines as are found
 */
 
 
@@ -27,19 +27,25 @@ let testPose = null;
 
 let targetPose = null;
 
-document.getElementById("calibrateButton").addEventListener("click", function scaleTestA() {
+document.getElementById("calibrateButton").addEventListener("click",  testPose = function scaleTestA() {
     console.log("Hey we had a click event! This is the poses array: ");
     console.log(poses);
 
     let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", poses[0].skeleton);
     //Just some stuff to get the right-left shoulder distance
     //THIS ASSUMES THE RIGHT SHOULDER IS THE SECOND IN THE ARRAY (pretty sure ml5 always does it that way)
-    let rShoulderPoint = new Point(poses[0].skeleton[shouldersIndex][1].position.x, poses[0].skeleton[shouldersIndex][1].position.y);
-    let lShoulderPoint = new Point(poses[0].skeleton[shouldersIndex][0].position.x, poses[0].skeleton[shouldersIndex][0].position.y);
+    //let rShoulderPoint = new Point(poses[0].skeleton[shouldersIndex][1].position.x, poses[0].skeleton[shouldersIndex][1].position.y);
+    //let lShoulderPoint = new Point(poses[0].skeleton[shouldersIndex][0].position.x, poses[0].skeleton[shouldersIndex][0].position.y);
     //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
-    let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+    //let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
 
-    testPose = scaleToShoulders(testPose, shDistance);
+    //testPose = scaleToShoulders(testPose, shDistance);
+
+    //I think this needs to be a return - directly editing testPose leaves it... undefined
+    return scaleAndShift(testPose, poses[0].skeleton[shouldersIndex]);
+
+    console.log("The pose at the outer layer, after being changed: ");
+    console.log(testPose);
 }
 );
 
@@ -120,8 +126,8 @@ function loadScaledTarget() {
                 // A keypoint is an object describing a body part (like rightArm or leftShoulder)
                 let keypoint = ppose.keypoints[j];
 
-                keypoint.position.x *= 0.5;
-                keypoint.position.y *= 0.5;
+                //keypoint.position.x *= 0.5;
+                //keypoint.position.y *= 0.5;
 
                 //if (keypoint.score > 0.2) {
                 //    if (poses[i].pose.target == 1) {
@@ -140,17 +146,17 @@ function loadScaledTarget() {
                 let boneStart = skeleton[i][0];
                 let boneEnd = skeleton[i][1];
 
-                boneStart.position.x *= 0.5;
-                boneStart.position.y *= 0.5;
+                //boneStart.position.x *= 0.5;
+                //boneStart.position.y *= 0.5;
 
-                boneEnd.position.x *= 0.5;
-                boneEnd.position.y *= 0.5;
+                //boneEnd.position.x *= 0.5;
+                //boneEnd.position.y *= 0.5;
 
                 //let distance = getDistance(boneStart.position.x, boneStart.position.y, boneEnd.position.x, boneEnd.position.y);
                 //console.log("Length of testPose skeleton line " + i + ": " + distance);
             }
 
-            testPose = scaleToShoulders(testPose, 30);
+            //testPose = scaleToShoulders(testPose, 30);
 
             //if (poses[0] != undefined){
                 //Just some stuff to get the right-left shoulder distance
@@ -170,7 +176,7 @@ function loadScaledTarget() {
     //score += 1;
 
     // For test pose, loop through all the keypoints
-    console.log(testPose);
+    //console.log(testPose);
     //For some testPose is null in this level - why??
     //I think the WHOLE of function should be run before I try to access testPose
     //const ppose = testPose.pose;
@@ -257,12 +263,12 @@ function draw() {
 
     //Add the targetPose
     if (!targetPose) return;
-    poses.push(targetPose);
+    //poses.push(targetPose);
     poses.push(testPose);
     drawKeypoints();
     drawSkeleton();
     //Remove the targetPose
-    poses.pop();
+    //poses.pop();
     poses.pop();
 }
 
@@ -379,7 +385,7 @@ function minimalKeypoints(pose){
 }
 
 /**
-     * Checks if a part is in the skeleton array, if so, returns its index
+     * Checks if a pair of parts is in the skeleton array, if so, returns its index
      * @param {*} lookingFor1 the name of one of the parts to look for
      * @param {*} lookingFor2 the name of the other part to look for
      * @param {*} skeleton a skeleton array (from in a pose) to search through
@@ -407,7 +413,10 @@ function minimalKeypoints(pose){
  * @param {number} scaleToDistance The right-left shoulder distance we want to scale the pose to
  * @returns {object} The altered pose object (hopefully it doesn't just alter the original...?)
  */
-function scaleToShoulders(pose, scaleToDistance) {
+function  scaleToShoulders(pose, scaleToDistance) {
+    //SOMEWHERE IT"S MORE ABSOLUTE THAN RELATIVE WHEN MEASURING THEIR POSITION
+
+
     //skeleton[6] is the line from left to right shoulder
     //focusShoulder = pose.skeleton[6][0]
     let rShoulderPoint = new Point(pose.skeleton[6][1].position.x, pose.skeleton[6][1].position.y);
@@ -474,6 +483,8 @@ function scaleToShoulders(pose, scaleToDistance) {
         keypoint.position.y = pointsArray[i].position.y;
     }
 
+    //What about the ones just hangin in neither
+
     //For the skeleton
     for (let i = 0; i < pose.skeleton.length; i++) {
         for (let j = 0; j < 2; ++j){
@@ -484,6 +495,9 @@ function scaleToShoulders(pose, scaleToDistance) {
             }
         }
     }
+
+    console.log("The pose, all edited yay: ");
+    console.log(pose);
 
     //Create an enum for iterating in the correct order - maybe not? Maybe just an array of references.
     //After skeleton[1], could input skeleton[7] (right-left hips), or could not. 
@@ -552,6 +566,86 @@ function scaleToShoulders(pose, scaleToDistance) {
         //let distance = getDistance(boneStart.position.x, boneStart.position.y, boneEnd.position.x, boneEnd.position.y);
         //console.log("Length of testPose skeleton line " + i + ": " + distance);
     //}
+
+    return pose;
+}
+
+function scaleAndShift(pose, skeletonBone) {
+
+    //Find the skeleton pair across the shoulders
+    //let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", poses[0].skeleton);
+    //Just some stuff to get the right-left shoulder distance
+    //THIS ASSUMES THE RIGHT SHOULDER IS THE SECOND IN THE ARRAY (pretty sure ml5 always does it that way)
+    let rShoulderPoint = new Point(skeletonBone[1].position.x, skeletonBone[1].position.y);
+    let lShoulderPoint = new Point(skeletonBone[0].position.x, skeletonBone[0].position.y);
+    //x and y are measured from top-right, so I'd recommend using rShoulder as the absolute point when we get to that (I think)
+    let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+
+    let thisRShoulder = new Point(pose.pose.keypoints[6].position.x, pose.pose.keypoints[6].position.y);     //6 is the index of the right shoulder
+    //VERY IMPORTANT to make this a point so that it won't change as the pose is being changed
+    //That was the bug that was making me big sad
+
+    //Make sure that the pose has a right shoulder
+    if (thisRShoulder == undefined){
+        return;
+    }
+
+    console.log("keypoints length: ");
+    console.log(pose.pose.keypoints);
+
+    console.log("thisRShoulder");
+    console.log(thisRShoulder);
+
+    console.log("rShoulderPoint");
+    console.log(rShoulderPoint);
+
+    //Debugging:
+    //  Skeleton is getting shifted towards rShoulder by the same x and y every time this runs (If the keypoint for loop loops until j= 
+    //      1,2,3,4,5)
+    //  Skeleton AND relevent point gets shifted (in the same, wrong way) for j = 
+    //      6
+    //  Just the first 2 points (and not the skeleton at all) moves completely correctly for j = 
+    //      7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
+    //  And the same but with an "TypeError - thing is undefined" error for j = 
+    //      18, 40, 60, 66
+
+    for (let j = 0; j < pose.pose.keypoints.length; j++) {
+        console.log(j);
+
+        // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+        let keypoint = pose.pose.keypoints[j];
+
+        console.log("pose.pose.keypoints[j] pre-change");
+        console.log(pose.pose.keypoints[j]);
+        
+        pose.pose.keypoints[j].position.x = pose.pose.keypoints[j].position.x - thisRShoulder.x + rShoulderPoint.x;
+        console.log("pose.pose.keypoints[j].position.x: " + keypoint.position.x);
+        pose.pose.keypoints[j].position.y = pose.pose.keypoints[j].position.y - thisRShoulder.y + rShoulderPoint.y;
+        console.log("pose.pose.keypoints[j].position.y: " + pose.pose.keypoints[j].position.y);
+
+        console.log("pose.pose.keypoints[j] post-change");
+        console.log(pose.pose.keypoints[j]);
+    }
+    //What about the loose points not in keypoints or skeleton?
+
+    for (let i = 0; i < pose.skeleton.length; i++) {
+        let boneStart = pose.skeleton[i][0];
+        let boneEnd = pose.skeleton[i][1];
+
+        pose.skeleton[i][0].position.x = pose.skeleton[i][0].position.x - thisRShoulder.x + rShoulderPoint.x;
+        pose.skeleton[i][0].position.y = pose.skeleton[i][0].position.y - thisRShoulder.y + rShoulderPoint.y;
+
+        pose.skeleton[i][1].position.x = pose.skeleton[i][1].position.x - thisRShoulder.x + rShoulderPoint.x;
+        pose.skeleton[i][1].position.y = pose.skeleton[i][1].position.y - thisRShoulder.y + rShoulderPoint.y;
+
+    }
+
+    console.log("The shifted, unscaled pose: ");
+    console.log(pose);
+    pose = scaleToShoulders(pose, shDistance);
+
+    console.log("The shifted and scaled pose: ");
+    console.log(pose);
 
     return pose;
 }
