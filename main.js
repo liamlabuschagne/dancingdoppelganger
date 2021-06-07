@@ -9,6 +9,16 @@ let danceMoves = ['Y-pose.json', 'T-pose.json', 'rightArmUp.json']
 
 let targetPose = null;
 
+let absShoulderPair = undefined;
+let calibratedFlag = false;
+
+document.getElementById("calibrateButton").addEventListener("click", function flagFlip() {
+    console.log("Hey the clicky thing worked");
+    calibratedFlag = !calibratedFlag;
+    console.log(calibratedFlag);
+}
+);
+
 //This is our score, always starts at 0
 var score = 0;
 var scoreAudio = document.getElementById("scoreAudio");
@@ -102,13 +112,21 @@ function draw() {
     //Note:     The first pose in the poses array seems to usually be the most prominent pose that ml5 has returned, I think?
     //              So this even works when multiple people on-screen.
     if (poses[0] != undefined){
-        //Find the element which has the pair of shoulders from the first pose in the poses array
-        let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", poses[0].skeleton);
+        if (calibratedFlag == false){
+            console.log("calibratedFlag was false." + calibratedFlag);
+            //Find the element which has the pair of shoulders from the first pose in the poses array
+            let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", poses[0].skeleton);
 
-        //If the shoulders were found
-        if (shouldersIndex > -1){
-            //Scale and shift targetPose to the first pose in the poses array
-            targetPose = scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
+            //If the shoulders were found
+            if (shouldersIndex > -1){
+                //Scale and shift targetPose to the first pose in the poses array
+                //targetPose = scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
+                calibrate(targetPose, poses[0].skeleton[shouldersIndex]);
+            }
+        }
+        else {
+            console.log("calibratedFlag was true.");
+            scaleAndShift(targetPose, absShoulderPair);
         }
     }
 
@@ -508,4 +526,16 @@ function scaleAndShift(pose, skeletonBone) {
     //console.log(pose);
 
     return pose;
+}
+
+function calibrate(pose, skeletonBone){
+    //x and y are measured from top-right, so I've used rShoulder as the absolute point
+
+    if (skeletonBone == undefined || skeletonBone == null){
+        return;
+    }
+
+    absShoulderPair = skeletonBone;
+
+    pose = scaleAndShift(pose, absShoulderPair);
 }
