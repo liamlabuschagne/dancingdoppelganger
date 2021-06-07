@@ -13,9 +13,7 @@ let absShoulderPair = undefined;
 let calibratedFlag = false;
 
 document.getElementById("calibrateButton").addEventListener("click", function flagFlip() {
-    console.log("Hey the clicky thing worked");
     calibratedFlag = !calibratedFlag;
-    console.log(calibratedFlag);
 }
 );
 
@@ -113,7 +111,7 @@ function draw() {
     //              So this even works when multiple people on-screen.
     if (poses[0] != undefined){
         if (calibratedFlag == false){
-            console.log("calibratedFlag was false." + calibratedFlag);
+            //console.log("calibratedFlag was false." + calibratedFlag);
             //Find the element which has the pair of shoulders from the first pose in the poses array
             let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", poses[0].skeleton);
 
@@ -125,13 +123,37 @@ function draw() {
             }
         }
         else {
-            console.log("calibratedFlag was true.");
-            scaleAndShift(targetPose, absShoulderPair);
+            //Yoink some stuff outta matchPose
+            // Compare only main body sections
+            let matches = 0;
+            for (let i = 5; i < 12; i++) {
+                if (pointMatches(i)) {
+                    matches++;
+                }
+            }
+            //If they're close to getting the pose
+            if (matches > 4) {
+                //Find the element which has the pair of shoulders from the first pose in the poses array
+                let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", poses[0].skeleton);
+
+                //If the shoulders were found
+                if (shouldersIndex > -1){
+                    //Shift this pose closer to them (don't change absShoulderPair)
+                    scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
+                }
+            }
+            else {
+                //Shift it to it's point relative to absoluteShoulderPair
+                scaleAndShift(targetPose, absShoulderPair);
+            }
         }
     }
 
     // Add the target pose
     if (targetPose) poses.push(targetPose);
+
+    //clear goodpoints
+    goodpoints = [];
 
     // We can call both functions to draw all keypoints and the skeletons
     drawKeypoints();
@@ -139,9 +161,6 @@ function draw() {
 
     // Seperate out pose matching from drawing
     matchPose();
-
-    //clear goodpoints
-    goodpoints = [];
 
     //console.log("Poses: ");
     //console.log(poses);
@@ -168,10 +187,6 @@ function Point(x, y) {
 }
 
 function pointMatches(part) {
-    //if (goodpoints.length > 0){
-    //    console.log("This is goodpoints within pointMatches function: ");
-    //    console.log(goodpoints);
-    //}
     if (!goodpoints[part]) return false;
     let actual = new Point(goodpoints[part].x, goodpoints[part].y);
     let target = new Point(targetPose.pose.keypoints[part].position.x, targetPose.pose.keypoints[part].position.y);
@@ -185,10 +200,6 @@ function pointMatches(part) {
 }
 
 function matchPose(){
-    //if (goodpoints.length > 0){
-    //    console.log("This is goodpoints within matchPose function: ");
-    //    console.log(goodpoints);
-    //} 
     // Compare only main body sections
     let matches = 0;
     for (let i = 5; i < 12; i++) {
@@ -199,7 +210,6 @@ function matchPose(){
 
     if(time == 9){
         if (matches == 7) {
-            //Adds 10 to the score
             if(!hasDonePose){
                 document.body.style.backgroundColor = "green";
                 hasDonePose = true;
@@ -259,11 +269,7 @@ function drawKeypoints() {
                 ctx.closePath();
                 ctx.fill();
             }
-        }   
-        //if (goodpoints.length > 0){
-        //    console.log("This is goodpoints within drawKeypoints function: ");
-        //    console.log(goodpoints);
-        //}
+        }
     }
 }
 
