@@ -32,10 +32,9 @@ const countdownEl = document.getElementById('countdown');
 setInterval(updateCountdown, 1000);
 
 function updateCountdown(){
-    const minutes = Math.floor(time / 60);
-    let seconds = time % 60;
-
-    countdownEl.innerHTML = `${minutes}: ${seconds}`;
+    let secondsUp = time % 60;
+    let secondsDown = 10 - secondsUp;
+    countdownEl.innerHTML = "Seconds till next pose: " + secondsDown;
     time++;
 
     if(time == 10){
@@ -43,6 +42,7 @@ function updateCountdown(){
         time = 0;
     }
 }
+
 
 function loadTarget() {
     hasDonePose = false;
