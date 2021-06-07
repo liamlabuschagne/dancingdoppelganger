@@ -123,6 +123,9 @@ function draw() {
             }
         }
         else {
+            //Shift it to it's point relative to absoluteShoulderPair
+            scaleAndShift(targetPose, absShoulderPair);
+
             //Yoink some stuff outta matchPose
             // Compare only main body sections
             let matches = 0;
@@ -142,10 +145,10 @@ function draw() {
                     scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
                 }
             }
-            else {
+            //else {
                 //Shift it to it's point relative to absoluteShoulderPair
-                scaleAndShift(targetPose, absShoulderPair);
-            }
+            //    scaleAndShift(targetPose, absShoulderPair);
+            //}
         }
     }
 
