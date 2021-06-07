@@ -11,6 +11,7 @@ let targetPose = null;
 
 //This is our score, always starts at 0
 var score = 0;
+var scoreAudio = document.getElementById("scoreAudio");
 
 //Timer for adding poses randomly throughout the song.
 const startingMinutes = 0;
@@ -18,23 +19,6 @@ let time = startingMinutes * 60;
 
 //Stops our score flying up
 //hasDonePose = new boolean(false);
-
-const countdownEl = document.getElementById('countdown');
-
-setInterval(updateCountdown, 1000);
-
-function updateCountdown(){
-    let secondsUp = time % 60;
-    let secondsDown = 10 - secondsUp;
-    countdownEl.innerHTML = "Seconds till next pose: " + secondsDown;
-    time++;
-
-    if(time == 10){
-        loadTarget();
-        time = 0;
-    }
-}
-
 
 const countdownEl = document.getElementById('countdown');
 
@@ -54,6 +38,7 @@ function updateCountdown(){
 }
 
 function loadTarget() {
+    document.body.style.backgroundColor = "white";
     hasDonePose = false;
     let randomlyPickDanceMove = danceMoves[Math.floor(Math.random() * danceMoves.length)];
     var xobj = new XMLHttpRequest();
@@ -194,19 +179,45 @@ function matchPose(){
         }
     }
 
-    if (matches == 7) {
-        //Adds 10 to the score
-        if(!hasDonePose){
-            hasDonePose = true;
-            score++;
-            document.querySelector("#score").innerHTML = "Score: " + score;
+    if(time == 9){
+        if (matches == 7) {
+            //Adds 10 to the score
+            if(!hasDonePose){
+                document.body.style.backgroundColor = "green";
+                hasDonePose = true;
+                score += 3;
+                document.querySelector("#score").innerHTML = "Score: " + score;
+            }
+            else{
+                //Sing and wait for next pose!
+            }
         }
-        else{
-            //Sing and wait for next pose!
+        if (matches == 6) {
+            //Adds 10 to the score
+            if(!hasDonePose){
+                document.body.style.backgroundColor = "green";
+                hasDonePose = true;
+                score += 2;
+                document.querySelector("#score").innerHTML = "Score: " + score;
+            }
+            else{
+                //Sing and wait for next pose!
+            }
+        }
+        if (matches == 5) {
+            //Adds 10 to the score
+            if(!hasDonePose){
+                document.body.style.backgroundColor = "green";
+                hasDonePose = true;
+                score += 1;
+                document.querySelector("#score").innerHTML = "Score: " + score;
+            }
+            else{
+                //Sing and wait for next pose!
+            }
         }
     }
 }
-
 // A function to draw ellipses over the detected keypoints
 function drawKeypoints() {
     // Loop through all the poses detected
