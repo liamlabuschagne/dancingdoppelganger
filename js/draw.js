@@ -1,7 +1,7 @@
 import { pointMatches, getMatches } from './point.js'
 import Loader from './loader.js';
 import { findSkeletonElement, calibrate, scaleAndShift } from './calibrate.js'
-
+import Recorder from './recorder.js';
 
 export default class Draw {
     poses = [];
@@ -16,6 +16,7 @@ export default class Draw {
     hasDonePose = false;
     absShoulderPair = undefined;
     calibratedFlag = false;
+    recorder;
 
     constructor(ctx, canvas, video) {
         this.ctx = ctx;
@@ -23,8 +24,23 @@ export default class Draw {
         this.video = video;
         this.poses = [];
         this.goodPoints = [];
+
+        this.recorder = new Recorder();
+
         this.loadTargetPose();
         this.loadCameraAndStartSetup();
+        this.setupRecordButtonEventListener();
+    }
+
+    setupRecordButtonEventListener() {
+        document.querySelector("#record").addEventListener("click", () => {
+            if (this.recorder.recording) {
+                this.recorder.stopRecording();
+            } else {
+                this.recorder.startRecording();
+                document.querySelector("#record").textContent = "Stop Recording";
+            }
+        })
     }
 
     drawKeyPoints() {
@@ -86,6 +102,8 @@ export default class Draw {
 
         let matches = getMatches(this.targetPose, this.goodPoints);
         this.awardPoints(matches);
+
+        this.recorder.setCurrentPoses(this.poses);
 
         // Call draw recursively every frame (max 60fps)
         requestAnimationFrame(this.draw.bind(this));
