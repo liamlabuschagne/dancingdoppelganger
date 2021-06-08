@@ -50,12 +50,21 @@
     display: grid;
     grid-template-columns: repeat(2,1fr);
 }
+.Text{
+    text-align: center;
+    font-size: 23px;
+    width: 600px;
+    margin: auto;
+}
 video{
     margin: auto;
 }
 canvas {
     transform: scale(-1, 1);
     filter: FlipH;
+    padding: 0;
+    margin: auto;
+    display: block;
 }
 
 audio {
