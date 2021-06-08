@@ -47,7 +47,8 @@
     background: #5FA6B7;
     color: white;
     font-size: 32px;
-    columns: 2;
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
 }
 video{
     margin: auto;
@@ -57,3 +58,6 @@ canvas {
     filter: FlipH;
 }
 
+audio {
+    display: none;
+}

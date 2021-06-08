@@ -1,5 +1,8 @@
 import { pointMatches, getMatches } from './point.js'
 import Loader from './loader.js';
+import { findSkeletonElement, calibrate, scaleAndShift } from './calibrate.js'
+
+
 export default class Draw {
     poses = [];
     goodPoints = [];
@@ -11,6 +14,8 @@ export default class Draw {
     time = 0;
     score = 0;
     hasDonePose = false;
+    absShoulderPair = undefined;
+    calibratedFlag = false;
 
     constructor(ctx, canvas, video) {
         this.ctx = ctx;
@@ -74,6 +79,8 @@ export default class Draw {
         this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
         if (this.targetPose) this.poses.push(this.targetPose);
 
+        this.checkIfCalibrationNeeded();
+
         this.drawKeyPoints();
         this.drawSkeleton();
 
@@ -84,18 +91,38 @@ export default class Draw {
         requestAnimationFrame(this.draw.bind(this));
     }
 
+    updateScore() {
+        document.querySelector("#score").innerHTML = "Score: " + this.score;
+    }
+
     awardPoints(matches) {
-        if (matches == 7) {
+        if (this.time == 9) {
+
+            let amountToIncreaseScoreBy = 0;
+
+            if (matches == 7) {
+                amountToIncreaseScoreBy = 3;
+            }
+            if (matches == 6) {
+                amountToIncreaseScoreBy = 2;
+            }
+            if (matches == 5) {
+                amountToIncreaseScoreBy = 1;
+            }
+
             if (!this.hasDonePose) {
+                document.body.style.backgroundColor = "green";
                 this.hasDonePose = true;
-                this.score++;
-                document.querySelector("#score").innerHTML = "Score: " + this.score;
+                this.score += amountToIncreaseScoreBy;
+                this.updateScore();
             }
         }
     }
 
     setNewTargetPose(targetPose) {
+        document.body.style.backgroundColor = "white";
         this.targetPose = targetPose;
+        this.hasDonePose = false;
     }
 
     reportLoadError(message) {
@@ -133,7 +160,7 @@ export default class Draw {
 
         // Create a new poseNet method with a single detection
         let poseNet = ml5.poseNet(this.video, () => {
-            document.querySelector("#status").innerHTML = "Model Loaded";
+            console.log("Model Loaded");
         });
 
         poseNet.on("pose", this.setPoses.bind(this));
@@ -162,5 +189,44 @@ export default class Draw {
             });
         });
     }
-}
 
+    checkIfCalibrationNeeded() {
+        if (this.poses[0] != undefined) {
+            if (this.calibratedFlag == false) {
+                //console.log("calibratedFlag was false." + calibratedFlag);
+                //Find the element which has the pair of shoulders from the first pose in the poses array
+                let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", this.poses[0].skeleton);
+
+                //If the shoulders were found
+                if (shouldersIndex > -1) {
+                    //Scale and shift targetPose to the first pose in the poses array
+                    //targetPose = scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
+                    calibrate(this.targetPose, this.poses[0].skeleton[shouldersIndex]);
+                }
+            }
+            else {
+                //Shift it to it's point relative to absoluteShoulderPair
+                scaleAndShift(this.targetPose, this.absShoulderPair);
+
+                //Yoink some stuff outta matchPose
+                // Compare only main body sections
+                let matches = getMatches(this.targetPose, this.goodPoints);
+                //If they're close to getting the pose
+                if (matches > 4) {
+                    //Find the element which has the pair of shoulders from the first pose in the poses array
+                    let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", this.poses[0].skeleton);
+
+                    //If the shoulders were found
+                    if (shouldersIndex > -1) {
+                        //Shift this pose closer to them (don't change absShoulderPair)
+                        scaleAndShift(this.targetPose, this.poses[0].skeleton[shouldersIndex]);
+                    }
+                }
+                //else {
+                //Shift it to it's point relative to absoluteShoulderPair
+                //    scaleAndShift(targetPose, absShoulderPair);
+                //}
+            }
+        }
+    }
+}
