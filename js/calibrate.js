@@ -74,6 +74,9 @@ export function findSkeletonElement(lookingFor1, lookingFor2, skeleton) {
  * @returns {object} The altered pose object (hopefully it doesn't just alter the original...?)
  */
 export function scaleToShoulders(pose, scaleToDistance) {
+
+    if (!pose || !pose.skeleton[6]) return; // Incomplete frame
+
     //x and y are measured from top-right, so I've used rShoulder as the absolute point
     //skeleton[6] is the line from left to right shoulder. [1] is right, [0] is left (I think ml5 just always returns it in this order)
 
@@ -161,6 +164,7 @@ export function scaleToShoulders(pose, scaleToDistance) {
  * @returns pose, once shifted and scaled
  */
 export function scaleAndShift(pose, skeletonBone) {
+    if (!pose) return;
     //x and y are measured from top-right, so I've used rShoulder as the absolute point
 
     //THIS ASSUMES THE RIGHT SHOULDER IS THE SECOND IN THE ARRAY (pretty sure ml5 always does it that way)

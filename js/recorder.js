@@ -1,19 +1,30 @@
 export default class Recorder {
     output = []
     interval;
-    intervalTime = 200;
+    intervalTime = 1000;
     currentPoses = []
     time = 0;
     recording = false;
 
     recordPose() {
+        if (this.currentPoses == null) return;
         this.currentPoses = { "poses": this.currentPoses, "time": this.time };
         this.output.push(this.currentPoses);
         this.time += this.intervalTime;
     }
 
     setCurrentPoses(currentPoses) {
-        this.currentPoses = currentPoses;
+        let missingPoints = false;
+        currentPoses.forEach((pose) => {
+            pose = pose.pose;
+            for (let j = 5; j < 13; j++) {
+                const keyPoint = pose.keypoints[j];
+                if (keyPoint.score < 0.2) {
+                    missingPoints = true;
+                }
+            }
+        })
+        if (!missingPoints) this.currentPoses = currentPoses;
     }
 
     downloadSong() {

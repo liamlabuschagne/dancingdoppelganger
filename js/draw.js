@@ -17,6 +17,8 @@ export default class Draw {
     absShoulderPair = undefined;
     calibratedFlag = false;
     recorder;
+    danceMoves = [];
+    danceMovesIndex = -1;
 
     constructor(ctx, canvas, video) {
         this.ctx = ctx;
@@ -26,18 +28,55 @@ export default class Draw {
         this.goodPoints = [];
 
         this.recorder = new Recorder();
+        this.loader = new Loader();
 
-        this.loadTargetPose();
         this.loadCameraAndStartSetup();
         this.setupRecordButtonEventListener();
+        this.setUpFileUploadEventListener();
+    }
+
+    restartSong() {
+        setInterval(this.updateCountdown.bind(this), 100);
+        document.querySelector("audio").currentTime = 0;
+        document.querySelector("audio").play();
+    }
+
+    stopSong() {
+        this.danceMoves = [];
+        document.querySelector("audio").pause();
+    }
+
+    setUpFileUploadEventListener() {
+        document.querySelector("#dancingQueen").addEventListener("click", async (e) => {
+            this.setDanceMoves(await this.loader.loadPrerecorded());
+        })
+
+
+        document.querySelector("#fileUpload").addEventListener("change", async (e) => {
+            this.setDanceMoves(await this.loader.getFileContents(e));
+        });
+    }
+
+    setDanceMoves(jsonString) {
+        console.log(jsonString);
+        this.danceMoves = JSON.parse(jsonString);
+        this.nextDanceMove();
+        this.calibrateAfterSeconds(5);
+    }
+
+    calibrateAfterSeconds(seconds) {
+        setTimeout(this.checkIfCalibrationNeeded.bind(this), seconds * 1000);
+        setTimeout(this.restartSong.bind(this), seconds * 1000);
     }
 
     setupRecordButtonEventListener() {
         document.querySelector("#record").addEventListener("click", () => {
             if (this.recorder.recording) {
                 this.recorder.stopRecording();
+                this.stopSong();
             } else {
                 this.recorder.startRecording();
+                this.calibrateAfterSeconds(5);
                 document.querySelector("#record").textContent = "Stop Recording";
             }
         })
@@ -95,8 +134,6 @@ export default class Draw {
         this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
         if (this.targetPose) this.poses.push(this.targetPose);
 
-        this.checkIfCalibrationNeeded();
-
         this.drawKeyPoints();
         this.drawSkeleton();
 
@@ -118,15 +155,7 @@ export default class Draw {
 
             let amountToIncreaseScoreBy = 0;
 
-            if (matches == 7) {
-                amountToIncreaseScoreBy = 3;
-            }
-            if (matches == 6) {
-                amountToIncreaseScoreBy = 2;
-            }
-            if (matches == 5) {
-                amountToIncreaseScoreBy = 1;
-            }
+            amountToIncreaseScoreBy = matches;
 
             if (!this.hasDonePose) {
                 document.body.style.backgroundColor = "green";
@@ -138,8 +167,8 @@ export default class Draw {
     }
 
     setNewTargetPose(targetPose) {
-        document.body.style.backgroundColor = "white";
         this.targetPose = targetPose;
+        this.targetPose.pose.target = true;
         this.hasDonePose = false;
     }
 
@@ -148,6 +177,8 @@ export default class Draw {
     }
 
     updateCountdown() {
+        document.body.style.backgroundColor = "white";
+
         const countdownEl = document.querySelector('#countdown');
         const minutes = Math.floor(this.time / 60);
         let seconds = this.time % 60;
@@ -156,14 +187,28 @@ export default class Draw {
         this.time++;
 
         if (this.time == 10) {
-            this.loadTargetPose();
+            // this.loadTargetPose();
+            if (this.danceMoves.length != 0) {
+                this.nextDanceMove();
+            }
             this.time = 0;
         }
     }
 
+    nextDanceMove() {
+        if (this.danceMovesIndex < this.danceMoves.length - 1) {
+            this.danceMovesIndex++;
+        } else {
+            this.danceMovesIndex = 0;
+            alert("Final score: " + this.score);
+            this.stopSong();
+        }
+        if (!this.danceMoves[this.danceMovesIndex].poses[0]) return;
+        this.setNewTargetPose(this.danceMoves[this.danceMovesIndex].poses[0])
+    }
+
     loadTargetPose() {
-        let loader = new Loader();
-        loader.loadTargetPose().then(this.setNewTargetPose.bind(this)).catch(this.reportLoadError.bind(this));
+        this.loader.loadTargetPose().then(this.setNewTargetPose.bind(this)).catch(this.reportLoadError.bind(this));
     }
 
     loadCameraAndStartSetup() {
@@ -183,7 +228,6 @@ export default class Draw {
 
         poseNet.on("pose", this.setPoses.bind(this));
 
-        setInterval(this.updateCountdown.bind(this), 1000);
         this.draw();
     }
 

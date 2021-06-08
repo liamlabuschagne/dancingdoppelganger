@@ -9,7 +9,7 @@ export default function Point(x, y) {
 }
 
 export function pointMatches(part, targetPose, goodPoints) {
-    if (!goodPoints[part]) return false;
+    if (!goodPoints[part] || !targetPose) return false;
     let actual = new Point(goodPoints[part].position.x, goodPoints[part].position.y);
     let target = new Point(targetPose.pose.keypoints[part].position.x, targetPose.pose.keypoints[part].position.y);
 
