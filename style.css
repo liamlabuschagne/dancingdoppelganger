@@ -39,9 +39,19 @@
     background: #80CEE1;
     color: white;
     font-size: 32px;
-    margin-bottom: 20px;
 }
 
+.userInfo{
+    padding: 13px;
+    text-align: center;
+    background: #5FA6B7;
+    color: white;
+    font-size: 32px;
+    columns: 2;
+}
+video{
+    margin: auto;
+}
 canvas {
     transform: scale(-1, 1);
     filter: FlipH;
