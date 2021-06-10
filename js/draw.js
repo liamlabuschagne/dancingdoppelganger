@@ -161,7 +161,15 @@ export default class Draw {
             amountToIncreaseScoreBy = matches - 4;
 
             if (!this.hasDonePose) {
-                document.body.style.backgroundColor = "green";
+                if (amountToIncreaseScoreBy > 0){
+                    document.body.style.backgroundColor = "green";
+                }
+                else if (amountToIncreaseScoreBy < 0){
+                    document.body.style.backgroundColor = "red";
+                }
+                else {
+                    document.body.style.backgroundColor = "orange";
+                }
                 this.hasDonePose = true;
                 this.score += amountToIncreaseScoreBy;
                 this.updateScore();
