@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Dancing Doppelgangers</title>
-    <link rel="icon" href=  "Capture.PNG">
+
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
-
+    <link rel="icon" href=  "Capture.PNG">
     <audio controls>
         <source src="Abba - Dancing Queen.mp3" type="audio/mp3">
     </audio>
@@ -15,9 +15,9 @@
 <body>
     <!--div class for the header-->
     <div class="gameHeader">
-        <h2>ABBA - Dancing Queen</h2>
+        <h2>Creative</h2>
+        <h3>Play your own dance</h3>
     </div>
-
     <div class="userInfo">
         <p id='score'>Score: 0</p>
         <p id='countdown'>Seconds till next pose: 10</p>
@@ -25,10 +25,10 @@
 
     <canvas></canvas>
     <video autoplay="true"></video>
+
     <div class="Buttons">
-        <a id="dancingQueen" class="PlayButton" >Dancing Queen</a>
-        <a class="PlayButton" href="index.html">Back</a>
         <input id="fileUpload" class="PlayButton" type="file">
+        <a class="PlayButton" href="index.html">Back</a>
     </div>
     <script type="module" src="main.js"></script>
 

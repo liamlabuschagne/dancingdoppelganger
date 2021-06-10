@@ -209,6 +209,8 @@ export default class Draw {
             }
             alert("Final score: " + this.score + message);
             this.stopSong();
+            //Force refresh the page (not using cache)
+            document.location.reload(true);
         }
         if (!this.danceMoves[this.danceMovesIndex].poses[0]) return;
         this.setNewTargetPose(this.danceMoves[this.danceMovesIndex].poses[0])
