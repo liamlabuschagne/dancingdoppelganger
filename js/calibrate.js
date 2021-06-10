@@ -157,13 +157,14 @@ export function scaleToShoulders(pose, scaleToDistance) {
 }
 
 /**
+ * IS NOW THE CALIBRATE-ONLY VERSION
  * Takes a right and left shoulder pair and a pose. Scales the given pose to match the shoulders' size and 
  * positions it so that the right shoulders line up.
  * @param {*} pose The pose to be scaled and shifted
  * @param {*} skeletonBone The target shoulder position/scale. A right-left shoulder pair from a skeleton array
  * @returns pose, once shifted and scaled
  */
-export function scaleAndShift(pose, skeletonBone) {
+export function scaleAndShift(pose, skeletonBone, multiplierA) {
     if (!pose) return;
     //x and y are measured from top-right, so I've used rShoulder as the absolute point
 
@@ -173,7 +174,7 @@ export function scaleAndShift(pose, skeletonBone) {
     let lShoulderPoint = new Point(skeletonBone[0].position.x, skeletonBone[0].position.y);
 
     //Calculate the distance between the two shoulders
-    let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+    let scaleToDistance = rShoulderPoint.distanceTo(lShoulderPoint);
 
     //Save the original right shoulder position of the pose to change
     let thisRShoulder = new Point(pose.pose.keypoints[6].position.x, pose.pose.keypoints[6].position.y);     //6 is the index of the right shoulder
@@ -184,6 +185,18 @@ export function scaleAndShift(pose, skeletonBone) {
     if (thisRShoulder == undefined) {
         return;
     }
+
+    let poseRShoulderPoint = new Point(pose.pose.keypoints[6].position.x, pose.pose.keypoints[6].position.y);
+    let poseLShoulderPoint = new Point(pose.pose.keypoints[6].position.x, pose.pose.keypoints[6].position.y);
+
+    //Calculate current shoulder-distance of input pose
+    let shDistance = poseRShoulderPoint.distanceTo(poseLShoulderPoint);
+
+    //console.log("The shoulder distance to scale to: " + scaleToDistance);
+    //console.log("The shoulder distance of the actual pose, unchanged: " + shDistance);
+
+    //Calculate ratio of desiredShoulderDistance/currentShoulderDistance
+    multiplierA = scaleToDistance / shDistance;
 
     //console.log("keypoints length: ");
     //console.log(pose.pose.keypoints);
@@ -232,7 +245,7 @@ export function scaleAndShift(pose, skeletonBone) {
     //console.log(pose);
 
     //Then, do the scaling using this edited pose and the calculated shoulder distance
-    pose = scaleToShoulders(pose, shDistance);
+    pose = scaleToShoulders(pose, scaleToDistance);
 
     //console.log("The shifted and scaled pose: ");
     //console.log(pose);
@@ -240,14 +253,173 @@ export function scaleAndShift(pose, skeletonBone) {
     return pose;
 }
 
-export function calibrate(pose, skeletonBone) {
+export function calibrate(pose, skeletonBone, multiplierA) {
     //x and y are measured from top-right, so I've used rShoulder as the absolute point
 
     if (skeletonBone == undefined || skeletonBone == null) {
         return;
     }
 
+    
     let absShoulderPair = skeletonBone;
+    
+    //pose = scaleAndShift(pose, absShoulderPair);
 
-    pose = scaleAndShift(pose, absShoulderPair);
+    pose = scaleAndShift(pose, skeletonBone, multiplierA)
+
+    return absShoulderPair;
+}
+
+export function scaleAndShiftRel(pose, skeletonBone, calibrateMultiplierA) {
+    if (!pose) return;
+    //x and y are measured from top-right, so I've used rShoulder as the absolute point
+
+    //THIS ASSUMES THE RIGHT SHOULDER IS THE SECOND IN THE ARRAY (pretty sure ml5 always does it that way)
+    //Save the two points as new right and left shoulder Points.
+    let rShoulderPoint = new Point(skeletonBone[1].position.x, skeletonBone[1].position.y);
+    let lShoulderPoint = new Point(skeletonBone[0].position.x, skeletonBone[0].position.y);
+
+    //Calculate the distance between the two shoulders
+    let scaleToDistance = rShoulderPoint.distanceTo(lShoulderPoint);
+
+    //Save the original right shoulder position of the pose to change
+    let thisRShoulder = new Point(pose.pose.keypoints[6].position.x, pose.pose.keypoints[6].position.y);     //6 is the index of the right shoulder
+    //VERY IMPORTANT to make this a point so that it won't change as the pose is being changed
+    //That was the bug that was making me big sad
+
+    //Make sure that the pose has a right shoulder
+    if (thisRShoulder == undefined) {
+        return;
+    }
+
+    let thisRShoulderRel;
+
+    //console.log("keypoints length: ");
+    //console.log(pose.pose.keypoints);
+
+    //console.log("thisRShoulder");
+    //console.log(thisRShoulder);
+
+    //console.log("rShoulderPoint");
+    //console.log(rShoulderPoint);
+
+    for (let j = 0; j < pose.pose.keypoints.length; j++) {
+        //console.log(j);
+
+        //The current keypoint
+        let keypoint = pose.pose.keypoints[j];
+
+        //console.log("pose.pose.keypoints[j] pre-change");
+        //console.log(pose.pose.keypoints[j]);
+
+        thisRShoulderRel = new Point((thisRShoulder.x - rShoulderPoint.x) * calibrateMultiplierA + rShoulderPoint.x, (thisRShoulder.y - rShoulderPoint.y) * calibrateMultiplierA + rShoulderPoint.y);
+
+        //Change the x and y of this point to the same distance from new rShoulderPoint (our target) as it was from thisRShoulder
+        pose.pose.keypoints[j].position.x = pose.pose.keypoints[j].position.x - thisRShoulderRel.x + rShoulderPoint.x;
+        //console.log("pose.pose.keypoints[j].position.x: " + keypoint.position.x);
+        pose.pose.keypoints[j].position.y = pose.pose.keypoints[j].position.y - thisRShoulderRel.y + rShoulderPoint.y;
+        //console.log("pose.pose.keypoints[j].position.y: " + pose.pose.keypoints[j].position.y);
+
+        //console.log("pose.pose.keypoints[j] post-change");
+        //console.log(pose.pose.keypoints[j]);
+    }
+
+    //What about the loose points not in keypoints or skeleton?
+
+    for (let i = 0; i < pose.skeleton.length; i++) {
+        let boneStart = pose.skeleton[i][0];
+        let boneEnd = pose.skeleton[i][1];
+
+        //Change both points to be the same distance from new rShoulderPoint (our target) as they were from thisRShoulder
+        pose.skeleton[i][0].position.x = pose.skeleton[i][0].position.x - thisRShoulderRel.x + rShoulderPoint.x;
+        pose.skeleton[i][0].position.y = pose.skeleton[i][0].position.y - thisRShoulderRel.y + rShoulderPoint.y;
+
+        pose.skeleton[i][1].position.x = pose.skeleton[i][1].position.x - thisRShoulderRel.x + rShoulderPoint.x;
+        pose.skeleton[i][1].position.y = pose.skeleton[i][1].position.y - thisRShoulderRel.y + rShoulderPoint.y;
+
+    }
+
+    //console.log("The shifted, unscaled pose: ");
+    //console.log(pose);
+
+    //Then, do the scaling using this edited pose and the calculated shoulder distance
+    //pose = scaleToMultiplier(pose, calibrateMultiplierA);
+
+    //console.log("The shifted and scaled pose: ");
+    //console.log(pose);
+
+    return pose;
+}
+
+export function scaleToMultiplier(pose, multiplier) {
+
+    if (!pose || !pose.skeleton[6]) return; // Incomplete frame
+
+    //x and y are measured from top-right, so I've used rShoulder as the absolute point
+    //skeleton[6] is the line from left to right shoulder. [1] is right, [0] is left (I think ml5 just always returns it in this order)
+
+    //NOW THAT I KNOW MORE, I'm considering changing these to access keypoints instead of skeleton.
+    // Keypoints always have a value - even if it's bad. skeleton can be totally empty if it doesn't detect both points.
+    // Not sure which is best tho. It doesn't crash if there's no skeleton pair, just throws an error and continues.
+
+    //Create new (so not referencing the original - very important to avoid in javascript) Points for the right and left shoulder of the input pose
+    let rShoulderPoint = new Point(pose.skeleton[6][1].position.x, pose.skeleton[6][1].position.y);
+
+    //console.log("The multiplier: " + multiplier);
+
+    //Use a minimalKeypoints array so life is simpler. Editing this doesn't edit the original.
+    let pointsArray = new minimalKeypoints(pose);
+
+    //console.log("This is the minimal keypoints array again: ");
+    //console.log(pointsArray);
+
+    //console.log(pointsArray.length);
+
+    //Loop through minimalKeypoints array
+    for (let i = 0; i < pointsArray.length; ++i) {
+        //let keypoint = pointsArray[i];
+
+        //Scale the x and y distance from the original rightShoulder by the multiplier
+        let newXDistance = (pointsArray[i].position.x - rShoulderPoint.x) * multiplier;
+        let newYDistance = (pointsArray[i].position.y - rShoulderPoint.y) * multiplier;
+
+        //Add this to the rShoulderPoint to get the new x,y position
+        pointsArray[i].position.x = rShoulderPoint.x + newXDistance;
+        pointsArray[i].position.y = rShoulderPoint.y + newYDistance;
+        //console.log(pointsArray[i].x);
+    }
+
+    //console.log("And now, after it has been changed: ");
+    //console.log(pointsArray);
+
+    //For the keypoints
+    for (let i = 0; i < pose.pose.keypoints.length; ++i) {
+        let keypoint = pose.pose.keypoints[i];
+        //console.log("The current keypoint: ");
+        //console.log(keypoint);
+
+        //Copy the x,y values from pointsArray 
+        keypoint.position.x = pointsArray[i].position.x;
+        keypoint.position.y = pointsArray[i].position.y;
+    }
+
+    //What about the ones just hangin in neither?
+
+    //For the skeleton
+    for (let i = 0; i < pose.skeleton.length; i++) {    //For each pair
+        for (let j = 0; j < 2; ++j) {                    //Loop through both parts in this pair
+            //Find this part in pointsArray
+            let partFoundAt = findElement(pose.skeleton[i][j].part, pointsArray);
+            if (partFoundAt > -1) {      //If found, 
+                //Copy the x,y values from pointsArray for this point
+                pose.skeleton[i][j].position.x = pointsArray[partFoundAt].position.x;
+                pose.skeleton[i][j].position.y = pointsArray[partFoundAt].position.y;
+            }   //Can't really imagine this not finding the part btw, unless something's wrong
+        }
+    }
+
+    //console.log("The pose, all edited yay: ");
+    //console.log(pose);
+
+    return pose;
 }

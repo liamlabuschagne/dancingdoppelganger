@@ -1,6 +1,6 @@
 import { pointMatches, getMatches } from './point.js'
 import Loader from './loader.js';
-import { findSkeletonElement, calibrate, scaleAndShift } from './calibrate.js'
+import { findSkeletonElement, calibrate, scaleAndShift, scaleAndShiftRel } from './calibrate.js'
 import Recorder from './recorder.js';
 
 export default class Draw {
@@ -19,6 +19,8 @@ export default class Draw {
     recorder;
     danceMoves = [];
     danceMovesIndex = -1;
+    absShoulderPair;
+    calibrateMultiplier;
 
     constructor(ctx, canvas, video) {
         this.ctx = ctx;
@@ -66,7 +68,7 @@ export default class Draw {
     }
 
     calibrateAfterSeconds(seconds) {
-        setTimeout(this.checkIfCalibrationNeeded.bind(this), seconds * 1000);
+        //setTimeout(this.checkIfCalibrationNeeded.bind(this), seconds * 1000);
         setTimeout(this.restartSong.bind(this), seconds * 1000);
     }
 
@@ -135,6 +137,9 @@ export default class Draw {
 
     draw() {
         this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+        this.calibrationTwoPointOh();
+
         if (this.targetPose) this.poses.push(this.targetPose);
 
         this.drawKeyPoints();
@@ -147,6 +152,9 @@ export default class Draw {
 
         // Call draw recursively every frame (max 60fps)
         requestAnimationFrame(this.draw.bind(this));
+
+        //We gotta have a pop, right?
+        if (this.targetPose) this.poses.pop(this.targetPose);
     }
 
     updateScore() {
@@ -277,6 +285,8 @@ export default class Draw {
                     //Scale and shift targetPose to the first pose in the poses array
                     //targetPose = scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
                     calibrate(this.targetPose, this.poses[0].skeleton[shouldersIndex]);
+
+                    
                 }
             }
             else {
@@ -295,6 +305,63 @@ export default class Draw {
                     if (shouldersIndex > -1) {
                         //Shift this pose closer to them (don't change absShoulderPair)
                         scaleAndShift(this.targetPose, this.poses[0].skeleton[shouldersIndex]);
+                    }
+                }
+                //else {
+                //Shift it to it's point relative to absoluteShoulderPair
+                //    scaleAndShift(targetPose, absShoulderPair);
+                //}
+            }
+        }
+    }
+
+    calibrationTwoPointOh() {
+        if (this.poses[0] != undefined) {
+            if (this.calibratedFlag == false) {
+                //console.log("calibratedFlag was false." + calibratedFlag);
+                //Find the element which has the pair of shoulders from the first pose in the poses array
+                let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", this.poses[0].skeleton);
+
+                //If the shoulders were found
+                if (shouldersIndex > -1) {
+                    this.calibrateMultiplier = 0;
+                    //Scale and shift targetPose to the first pose in the poses array
+                    //targetPose = scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
+                    this.absShoulderPair = calibrate(this.targetPose, this.poses[0].skeleton[shouldersIndex], this.calibrateMultiplier);
+
+                    console.log(this.calibrateMultiplier);
+
+                    //let originalGamerPosition = new Point(this.poses[0].skeleton[shouldersIndex][0].position.x, this.poses[0].skeleton[shouldersIndex][0].position.y);
+
+                    //let rShoulderPoint = new Point(this.absShoulderPair[1].position.x, this.absShoulderPair[1].position.y);
+                    //let lShoulderPoint = new Point(this.absShoulderPair[0].position.x, this.absShoulderPair[0].position.y);
+
+                    //Calculate current shoulder-distance of input pose
+                    //let distance = rShoulderPoint.distanceTo(originalGamerPosition);
+
+                    //Calculate ratio of desiredShoulderDistance/currentShoulderDistance
+                    //calibrateMultiplier = scaleToDistance / distance;
+
+                    this.calibratedFlag = true;
+                }
+            }
+            else {
+                //Shift it to it's point relative to absoluteShoulderPair
+                scaleAndShiftRel(this.targetPose, this.absShoulderPair, this.calibrateMultiplier);
+
+                //Yoink some stuff outta matchPose
+                // Compare only main body sections
+                let matches = getMatches(this.targetPose, this.goodPoints);
+                //If they're close to getting the pose
+                if (matches > 4) {
+                    //Find the element which has the pair of shoulders from the first pose in the poses array
+                    let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", this.poses[0].skeleton);
+
+                    //If the shoulders were found
+                    if (shouldersIndex > -1) {
+                        let emptypointlessvariableholdingourfateinitshandsthankyouepv;
+                        //Shift this pose closer to them (don't change absShoulderPair)
+                        scaleAndShift(this.targetPose, this.poses[0].skeleton[shouldersIndex], emptypointlessvariableholdingourfateinitshandsthankyouepv);
                     }
                 }
                 //else {
