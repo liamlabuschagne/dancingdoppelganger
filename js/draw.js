@@ -90,11 +90,12 @@ export default class Draw {
                 if (keyPoint.score > 0.2) {
                     if (pose.target) {
                         this.ctx.fillStyle = "#00ff00";
+                        this.drawEllipse(keyPoint.position.x, keyPoint.position.y, 7.5);
                     } else {
-                        this.ctx.fillStyle = "#FF0000";
+                        //this.ctx.fillStyle = "#FF0000";
                         this.goodPoints[j] = keyPoint;
                     }
-                    this.drawEllipse(keyPoint.position.x, keyPoint.position.y, 7.5);
+                    
                 }
             }
         })
@@ -118,14 +119,14 @@ export default class Draw {
                 const partB = skeleton[j][1];
                 if (this.poses[i].pose.target) {
                     this.ctx.strokeStyle = "#00FF00";
-                } else {
-                    this.ctx.strokeStyle = "#FF0000";
-                }
-                this.ctx.beginPath();
-                this.ctx.moveTo(partA.position.x, partA.position.y)
-                this.ctx.lineTo(partB.position.x, partB.position.y);
-                this.ctx.closePath();
-                this.ctx.stroke();
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(partA.position.x, partA.position.y)
+                    this.ctx.lineTo(partB.position.x, partB.position.y);
+                    this.ctx.closePath();
+                    this.ctx.stroke();
+                } //else {
+                    //this.ctx.strokeStyle = "#FF0000";
+               //}
             }
         }
     }
@@ -155,7 +156,7 @@ export default class Draw {
 
             let amountToIncreaseScoreBy = 0;
 
-            amountToIncreaseScoreBy = matches;
+            amountToIncreaseScoreBy = matches - 4;
 
             if (!this.hasDonePose) {
                 document.body.style.backgroundColor = "green";
@@ -177,7 +178,9 @@ export default class Draw {
     }
 
     updateCountdown() {
-        document.body.style.backgroundColor = "white";
+        if (this.time < 9 && this.time > 2){
+            document.body.style.backgroundColor = "white";
+        }
 
         const countdownEl = document.querySelector('#countdown');
         const minutes = Math.floor(this.time / 60);
@@ -200,7 +203,11 @@ export default class Draw {
             this.danceMovesIndex++;
         } else {
             this.danceMovesIndex = 0;
-            alert("Final score: " + this.score);
+            let message = "\r\n noice";
+            if (this.score < 0){
+                message = "\r\n You suck. Do better.";
+            }
+            alert("Final score: " + this.score + message);
             this.stopSong();
         }
         if (!this.danceMoves[this.danceMovesIndex].poses[0]) return;
