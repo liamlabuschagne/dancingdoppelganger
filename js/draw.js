@@ -47,14 +47,15 @@ export default class Draw {
     }
 
     setUpFileUploadEventListener() {
-        document.querySelector("#dancingQueen").addEventListener("click", async (e) => {
-            this.setDanceMoves(await this.loader.loadPrerecorded());
-        })
-
-
-        document.querySelector("#fileUpload").addEventListener("change", async (e) => {
-            this.setDanceMoves(await this.loader.getFileContents(e));
-        });
+        if (window.location.pathname == "/game.html") {
+            document.querySelector("#dancingQueen").addEventListener("click", async (e) => {
+                this.setDanceMoves(await this.loader.loadPrerecorded());
+            })
+        } else if (window.location.pathname == "/created_game.html") {
+            document.querySelector("#fileUpload").addEventListener("change", async (e) => {
+                this.setDanceMoves(await this.loader.getFileContents(e));
+            });
+        }
     }
 
     setDanceMoves(jsonString) {
@@ -70,6 +71,7 @@ export default class Draw {
     }
 
     setupRecordButtonEventListener() {
+        if (window.location.pathname != "/record_dance.html") return;
         document.querySelector("#record").addEventListener("click", () => {
             if (this.recorder.recording) {
                 this.recorder.stopRecording();
@@ -95,7 +97,7 @@ export default class Draw {
                         //this.ctx.fillStyle = "#FF0000";
                         this.goodPoints[j] = keyPoint;
                     }
-                    
+
                 }
             }
         })
@@ -125,8 +127,8 @@ export default class Draw {
                     this.ctx.closePath();
                     this.ctx.stroke();
                 } //else {
-                    //this.ctx.strokeStyle = "#FF0000";
-               //}
+                //this.ctx.strokeStyle = "#FF0000";
+                //}
             }
         }
     }
@@ -178,7 +180,9 @@ export default class Draw {
     }
 
     updateCountdown() {
-        if (this.time < 9 && this.time > 2){
+        if (window.location.pathname != "/game.html" && window.location.pathname != "/created_game.html") return;
+
+        if (this.time < 9 && this.time > 2) {
             document.body.style.backgroundColor = "white";
         }
 
@@ -204,7 +208,7 @@ export default class Draw {
         } else {
             this.danceMovesIndex = 0;
             let message = "\r\n noice";
-            if (this.score < 0){
+            if (this.score < 0) {
                 message = "\r\n You suck. Do better.";
             }
             alert("Final score: " + this.score + message);
