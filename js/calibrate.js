@@ -91,21 +91,11 @@ export function scaleToShoulders(pose, scaleToDistance) {
     //Calculate current shoulder-distance of input pose
     let shDistance = rShoulderPoint.distanceTo(lShoulderPoint);
 
-    //console.log("The shoulder distance to scale to: " + scaleToDistance);
-    //console.log("The shoulder distance of the actual pose, unchanged: " + shDistance);
-
     //Calculate ratio of desiredShoulderDistance/currentShoulderDistance
     let multiplier = scaleToDistance / shDistance;
 
-    //console.log("The multiplier: " + multiplier);
-
     //Use a minimalKeypoints array so life is simpler. Editing this doesn't edit the original.
     let pointsArray = new minimalKeypoints(pose);
-
-    //console.log("This is the minimal keypoints array again: ");
-    //console.log(pointsArray);
-
-    //console.log(pointsArray.length);
 
     //Loop through minimalKeypoints array
     for (let i = 0; i < pointsArray.length; ++i) {
@@ -118,17 +108,11 @@ export function scaleToShoulders(pose, scaleToDistance) {
         //Add this to the rShoulderPoint to get the new x,y position
         pointsArray[i].position.x = rShoulderPoint.x + newXDistance;
         pointsArray[i].position.y = rShoulderPoint.y + newYDistance;
-        //console.log(pointsArray[i].x);
     }
-
-    //console.log("And now, after it has been changed: ");
-    //console.log(pointsArray);
 
     //For the keypoints
     for (let i = 0; i < pose.pose.keypoints.length; ++i) {
         let keypoint = pose.pose.keypoints[i];
-        //console.log("The current keypoint: ");
-        //console.log(keypoint);
 
         //Copy the x,y values from pointsArray 
         keypoint.position.x = pointsArray[i].position.x;
@@ -149,9 +133,6 @@ export function scaleToShoulders(pose, scaleToDistance) {
             }   //Can't really imagine this not finding the part btw, unless something's wrong
         }
     }
-
-    //console.log("The pose, all edited yay: ");
-    //console.log(pose);
 
     return pose;
 }
@@ -185,32 +166,13 @@ export function scaleAndShift(pose, skeletonBone) {
         return;
     }
 
-    //console.log("keypoints length: ");
-    //console.log(pose.pose.keypoints);
-
-    //console.log("thisRShoulder");
-    //console.log(thisRShoulder);
-
-    //console.log("rShoulderPoint");
-    //console.log(rShoulderPoint);
-
     for (let j = 0; j < pose.pose.keypoints.length; j++) {
-        //console.log(j);
-
         //The current keypoint
         let keypoint = pose.pose.keypoints[j];
 
-        //console.log("pose.pose.keypoints[j] pre-change");
-        //console.log(pose.pose.keypoints[j]);
-
         //Change the x and y of this point to the same distance from new rShoulderPoint (our target) as it was from thisRShoulder
         pose.pose.keypoints[j].position.x = pose.pose.keypoints[j].position.x - thisRShoulder.x + rShoulderPoint.x;
-        //console.log("pose.pose.keypoints[j].position.x: " + keypoint.position.x);
         pose.pose.keypoints[j].position.y = pose.pose.keypoints[j].position.y - thisRShoulder.y + rShoulderPoint.y;
-        //console.log("pose.pose.keypoints[j].position.y: " + pose.pose.keypoints[j].position.y);
-
-        //console.log("pose.pose.keypoints[j] post-change");
-        //console.log(pose.pose.keypoints[j]);
     }
 
     //What about the loose points not in keypoints or skeleton?
@@ -228,14 +190,8 @@ export function scaleAndShift(pose, skeletonBone) {
 
     }
 
-    //console.log("The shifted, unscaled pose: ");
-    //console.log(pose);
-
     //Then, do the scaling using this edited pose and the calculated shoulder distance
     pose = scaleToShoulders(pose, shDistance);
-
-    //console.log("The shifted and scaled pose: ");
-    //console.log(pose);
 
     return pose;
 }
