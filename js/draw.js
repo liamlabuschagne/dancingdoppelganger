@@ -2,6 +2,7 @@ import { pointMatches, getMatches } from './point.js'
 import Loader from './loader.js';
 import { findSkeletonElement, calibrate, scaleAndShift } from './calibrate.js'
 import Recorder from './recorder.js';
+import Point from "./point.js";     //temporarily need this for a quick bug fix
 
 export default class Draw {
     poses = [];
@@ -19,6 +20,8 @@ export default class Draw {
     recorder;
     danceMoves = [];
     danceMovesIndex = -1;
+    globalScaler = 1;
+    calibrateRShoulder;
 
     constructor(ctx, canvas, video) {
         this.ctx = ctx;
@@ -66,7 +69,7 @@ export default class Draw {
     }
 
     calibrateAfterSeconds(seconds) {
-        setTimeout(this.checkIfCalibrationNeeded.bind(this), seconds * 1000);
+        setTimeout(this.calibrateOrScaleAndShift.bind(this), seconds * 1000);
         setTimeout(this.restartSong.bind(this), seconds * 1000);
     }
 
@@ -179,8 +182,14 @@ export default class Draw {
 
     setNewTargetPose(targetPose) {
         this.targetPose = targetPose;
-        this.targetPose.pose.target = true;
+        this.targetPose.pose.target = true;     //Quick thought: do the poses, when originally saved to a json, have a .target property?
         this.hasDonePose = false;
+
+        console.log("targetPose: ");
+        console.log(targetPose);
+        console.log("And the global scaler: " + this.globalScaler);
+        //Scale and shift it to its correct position based on the calibration pose
+        scaleAndShift(this.targetPose, this.calibrateRShoulder, this.globalScaler);
     }
 
     reportLoadError(message) {
@@ -221,7 +230,7 @@ export default class Draw {
             }
             alert("Final score: " + this.score + message);
             this.stopSong();
-            //Force refresh the page (not using cache)
+            //Force refresh the page (not using cache) (apparently .reload() is deprecated so we gotta find the new improved one)
             document.location.reload(true);
         }
         if (!this.danceMoves[this.danceMovesIndex].poses[0]) return;
@@ -273,23 +282,57 @@ export default class Draw {
         });
     }
 
-    checkIfCalibrationNeeded() {
+    /**
+     * Will only run once, so a lot of stuff like calibratedFlag are possibly irrelevant. Wait, no...
+     */
+    calibrateOrScaleAndShift() {
         if (this.poses[0] != undefined) {
             if (this.calibratedFlag == false) {
                 //console.log("calibratedFlag was false." + calibratedFlag);
                 //Find the element which has the pair of shoulders from the first pose in the poses array
                 let shouldersIndex = findSkeletonElement("rightShoulder", "leftShoulder", this.poses[0].skeleton);
 
+                console.log("this.poses[0].skeleton[shouldersIndex]: ");
+                console.log(this.poses[0].skeleton[shouldersIndex]);
+
+                console.log("targetPose: ");
+                console.log(this.targetPose);
+
                 //If the shoulders were found
                 if (shouldersIndex > -1) {
                     //Scale and shift targetPose to the first pose in the poses array
-                    //targetPose = scaleAndShift(targetPose, poses[0].skeleton[shouldersIndex]);
-                    calibrate(this.targetPose, this.poses[0].skeleton[shouldersIndex]);
+
+                    console.log("this.poses[0].skeleton[shouldersIndex], the sequel: ");
+                    console.log(this.poses[0].skeleton[shouldersIndex]);
+
+                    console.log("targetPose, the sequel: ");
+                    console.log(this.targetPose);
+
+                    console.log("thisRShoulder x position: ");
+                    console.log(this.targetPose.pose.keypoints[6].position.x);
+
+                    //THIS ASSUMES THE RIGHT SHOULDER IS THE SECOND IN THE ARRAY (pretty sure ml5 always does it that way)
+                    //Save the pose's right and left shoulder points as two new right and left shoulder Points.
+                    let thisRShoulder = new Point(this.targetPose.pose.keypoints[6].position.x, this.targetPose.pose.keypoints[6].position.y);    //6 is the index of the right shoulder
+                    let thisLShoulder = new Point(this.targetPose.pose.keypoints[5].position.x, this.targetPose.pose.keypoints[5].position.y);    //5 is the index of the left shoulder
+
+                    this.calibrateRShoulder = thisRShoulder;
+
+                    console.log("thisRShoulder outside: ");
+                    console.log(thisRShoulder);
+                    console.log("thisLShoulder outside: ");
+                    console.log(thisLShoulder);
+
+                    this.globalScaler = calibrate(this.targetPose, this.poses[0].skeleton[shouldersIndex], thisRShoulder, thisLShoulder);
+
+                    this.calibratedFlag = true;
                 }
             }
-            else {
+            /*else {
+                //Code beyond this point is now irrelevant due to the context which this is used - I'll delete it once I'm sure I'm done with it
+                //  (this code was meant to scale and shift poses normally, relative to calibrated pose, once calibration was complete)
                 //Shift it to it's point relative to absoluteShoulderPair
-                scaleAndShift(this.targetPose, this.absShoulderPair);
+                scaleAndShift(this.targetPose, this.globalScaler);
 
                 //Yoink some stuff outta matchPose
                 // Compare only main body sections
@@ -310,6 +353,7 @@ export default class Draw {
                 //    scaleAndShift(targetPose, absShoulderPair);
                 //}
             }
+            */
         }
     }
 }
